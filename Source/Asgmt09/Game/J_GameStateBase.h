@@ -8,4 +8,8 @@ UCLASS()
 class ASGMT09_API AJ_GameStateBase : public AGameStateBase
 {
 	GENERATED_BODY()
+
+public:
+	UFUNCTION(NetMulticast, reliable)
+	void MulticastRPCBroadcastLoginMessage(const FString& InNameString = FString(TEXT("Unknown")));
 };

@@ -1,10 +1,13 @@
 #include "Player/J_PlayerController.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "UI/J_TextInputWidget.h"
+#include "EngineUtils.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void AJ_PlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (IsLocalController() == false) return;
 
 	SetInputMode(FInputModeUIOnly());
 
@@ -18,10 +21,30 @@ void AJ_PlayerController::BeginPlay()
 	}
 }
 
+void AJ_PlayerController::ClientRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
+{
+	PrintChatMessageString(InChatMessageString);
+}
+
+void AJ_PlayerController::ServerRPCPrintChatMessageString_Implementation(const FString& InChatMessageString)
+{
+	for (TActorIterator<AJ_PlayerController> It(GetWorld()); It; ++It)
+	{
+		if (AJ_PlayerController* PlayerController = *It)
+		{
+			PlayerController->ClientRPCPrintChatMessageString(InChatMessageString);
+		}
+	}
+}
+
 void AJ_PlayerController::SetChatMessageString(const FString& InChatMessageString)
 {
 	ChatMessageString = InChatMessageString;
-	PrintChatMessageString(ChatMessageString);
+
+	if (IsLocalController())
+	{
+		ServerRPCPrintChatMessageString(InChatMessageString);
+	}
 }
 
 void AJ_PlayerController::PrintChatMessageString(const FString& InChatMessageString)

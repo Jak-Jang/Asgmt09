@@ -14,6 +14,11 @@ class ASGMT09_API AJ_PlayerController : public APlayerController
 public:
 	virtual void BeginPlay() override;
 
+	UFUNCTION(Client, Reliable)
+	void ClientRPCPrintChatMessageString(const FString& InChatMessageString);
+	UFUNCTION(Server, Reliable)
+	void ServerRPCPrintChatMessageString(const FString& InChatMessageString);
+
 	void SetChatMessageString(const FString& InChatMessageString);
 	void PrintChatMessageString(const FString& InChatMessageString);
 
