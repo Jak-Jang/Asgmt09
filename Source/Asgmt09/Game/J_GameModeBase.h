@@ -11,13 +11,6 @@ class ASGMT09_API AJ_GameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 
-	/*	TODO: 로직 구현
-	 *	[V] 멀티플레이 채팅
-	 *	[V] 정답 숫자 생성 로직
-	 *	[V] 입력된 숫자 판단 로직
-	 *	4. 게임 결과 판단 (승리, 무승부)
-	 */
-
 public:
 	virtual void OnPostLogin(AController* NewPlayer) override;
 	virtual void BeginPlay() override;
@@ -27,6 +20,11 @@ public:
 	FString GenerateSecretNumber();
 	bool IsGuessNumberString(const FString& InNumberString);
 	FString JudgeResult(const FString& InSecretNumberString, const FString& InGuessNumberString);
+
+	void IncreaseGuessCount(AJ_PlayerController* InChattingPlayerController);
+
+	void ResetGame();
+	void JudgeGame(AJ_PlayerController* InChattingPlayerController, int32 InStrikeCount);
 
 protected:
 	FString SecretNumberString;

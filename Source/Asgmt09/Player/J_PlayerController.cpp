@@ -4,6 +4,19 @@
 #include "GameFramework/GameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
+
+AJ_PlayerController::AJ_PlayerController()
+{
+	bReplicates = true;
+}
+
+void AJ_PlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, NoticeText);
+}
 
 void AJ_PlayerController::BeginPlay()
 {
@@ -19,6 +32,15 @@ void AJ_PlayerController::BeginPlay()
 		if (TextInputWidgetInstance)
 		{
 			TextInputWidgetInstance->AddToViewport();
+		}
+	}
+
+	if (NoticeTextWidgetClass)
+	{
+		NoticeTextWidgetInstance = CreateWidget<UUserWidget>(this, NoticeTextWidgetClass);
+		if (NoticeTextWidgetInstance)
+		{
+			NoticeTextWidgetInstance->AddToViewport();
 		}
 	}
 }

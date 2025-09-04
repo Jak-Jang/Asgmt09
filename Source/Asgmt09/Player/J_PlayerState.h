@@ -9,8 +9,17 @@ class ASGMT09_API AJ_PlayerState : public APlayerState
 {
 	GENERATED_BODY()
 
-	/*	TODO:
-	 *	1. 플레이어 정보
-	 *	2. 현재 시도 횟수 관리
-	 */
+public:
+	AJ_PlayerState();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	FString GetPlayerInfoString();
+
+	UPROPERTY(Replicated)
+	FString PlayerNameString;
+	UPROPERTY(Replicated)
+	int32 CurrentGuessCount;
+	UPROPERTY(Replicated)
+	int32 MaxGuessCount;
 };

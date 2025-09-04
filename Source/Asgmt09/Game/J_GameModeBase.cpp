@@ -1,20 +1,27 @@
 #include "Game/J_GameModeBase.h"
 #include "J_GameStateBase.h"
 #include "Player/J_PlayerController.h"
+#include "Player/J_PlayerState.h"
 #include "EngineUtils.h"
 
 void AJ_GameModeBase::OnPostLogin(AController* NewPlayer)
 {
 	Super::OnPostLogin(NewPlayer);
 
-	if (AJ_GameStateBase* J_GameState = GetGameState<AJ_GameStateBase>())
-	{
-		J_GameState->MulticastRPCBroadcastLoginMessage(TEXT("MultiLoginTest"));
-	}
-
 	if (AJ_PlayerController* J_PlayerController = Cast<AJ_PlayerController>(NewPlayer))
 	{
+		J_PlayerController->NoticeText = FText::FromString(TEXT("Connected to the game server"));
 		AllPlayerControllers.Add(J_PlayerController);
+
+		if (AJ_PlayerState* J_PlayerState = J_PlayerController->GetPlayerState<AJ_PlayerState>())
+		{
+			J_PlayerState->PlayerNameString = TEXT("Player") + FString::FromInt(AllPlayerControllers.Num());
+
+			if (AJ_GameStateBase* J_GameState = GetGameState<AJ_GameStateBase>())
+			{
+				J_GameState->MulticastRPCBroadcastLoginMessage(J_PlayerState->PlayerNameString);
+			}
+		}
 	}
 }
 
@@ -34,12 +41,21 @@ void AJ_GameModeBase::PrintChatMessageString(
 	if (IsGuessNumberString(GuessNumberString))
 	{
 		FString JudgeResultString = JudgeResult(SecretNumberString, GuessNumberString);
-		for (TActorIterator<AJ_PlayerController> It(GetWorld()); It; ++It)
+		IncreaseGuessCount(InChattingPlayerController);
+
+		if (AJ_PlayerState* J_PlayerState = InChattingPlayerController->GetPlayerState<AJ_PlayerState>())
 		{
-			if (AJ_PlayerController* J_PlayerController = *It)
+			for (TActorIterator<AJ_PlayerController> It(GetWorld()); It; ++It)
 			{
-				FString CombinedMessageString = InChatMessageString + TEXT(" -> ") + JudgeResultString;
-				J_PlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
+				if (AJ_PlayerController* J_PlayerController = *It)
+				{
+					FString CombinedMessageString = J_PlayerState->GetPlayerInfoString() + TEXT(": ") +
+						InChatMessageString + TEXT(" -> ") + JudgeResultString;
+					J_PlayerController->ClientRPCPrintChatMessageString(CombinedMessageString);
+
+					int32 StrikeCount = FCString::Atoi(*JudgeResultString.Left(1));
+					JudgeGame(InChattingPlayerController, StrikeCount);
+				}
 			}
 		}
 	}
@@ -129,4 +145,66 @@ FString AJ_GameModeBase::JudgeResult(const FString& InSecretNumberString, const 
 	if (StrikeCount == 0 && BallCount == 0) return (TEXT("Out!!!"));
 
 	return FString::Printf(TEXT("%dS / %dB"), StrikeCount, BallCount);
+}
+
+void AJ_GameModeBase::IncreaseGuessCount(AJ_PlayerController* InChattingPlayerController)
+{
+	if (AJ_PlayerState* J_PlayerState = InChattingPlayerController->GetPlayerState<AJ_PlayerState>())
+	{
+		J_PlayerState->CurrentGuessCount++;
+	}
+}
+
+void AJ_GameModeBase::ResetGame()
+{
+	SecretNumberString = GenerateSecretNumber();
+
+	for (const auto& J_PlayerController : AllPlayerControllers)
+	{
+		if (AJ_PlayerState* J_PlayerState = J_PlayerController->GetPlayerState<AJ_PlayerState>())
+		{
+			J_PlayerState->CurrentGuessCount = 0;
+		}
+	}
+}
+
+void AJ_GameModeBase::JudgeGame(AJ_PlayerController* InChattingPlayerController, int32 InStrikeCount)
+{
+	if (InStrikeCount == 3)
+	{
+		AJ_PlayerState* J_PlayerState = InChattingPlayerController->GetPlayerState<AJ_PlayerState>();
+		for (const auto& J_PlayerController : AllPlayerControllers)
+		{
+			if (J_PlayerState)
+			{
+				FString CombinedMessageString = TEXT("Winner: ") + J_PlayerState->PlayerNameString;
+				J_PlayerController->NoticeText = FText::FromString(CombinedMessageString);
+				ResetGame();
+			}
+		}
+	}
+	else
+	{
+		bool bIsDraw = true;
+		for (const auto& J_PlayerController : AllPlayerControllers)
+		{
+			if (AJ_PlayerState* J_PlayerState = J_PlayerController->GetPlayerState<AJ_PlayerState>())
+			{
+				if (J_PlayerState->CurrentGuessCount < J_PlayerState->MaxGuessCount)
+				{
+					bIsDraw = false;
+					break;
+				}
+			}
+		}
+
+		if (bIsDraw)
+		{
+			for (const auto& J_PlayerController : AllPlayerControllers)
+			{
+				J_PlayerController->NoticeText = FText::FromString(TEXT("Draw..."));
+				ResetGame();
+			}
+		}
+	}
 }
